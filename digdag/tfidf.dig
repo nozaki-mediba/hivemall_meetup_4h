@@ -1,0 +1,65 @@
+# 設定
+_export:
+  !include : config/params.yml
+  td:
+    apikey: ${apikey}
+    database: ${target}
+    engine: hive
+
+ # 前処理
++explode:
+  _parallel: true
+
+  +if_english:
+    if>: ${english}
+    _do:
+      td>: queries/explode.sql
+      create_table: exploded
+
+  +if_japanese:
+    if>: ${japanese}
+    _do:
+      td>: queries/explode_japanese.sql
+      create_table: exploded
+
++document_count:
+  td>: queries/count.sql
+  store_last_results: true
+  engine: presto
+
++document_length:
+  td>: queries/document_length.sql
+  create_table: document_length
+
+# tfidf/mb25の算出
++group:
+  for_each>:
+    n_docs: ["${td.last_results.n_docs}"]
+    ave_dl: ["${td.last_results.ave_dl}"]
+  _do:
+    +average_dl:
+      td>: queries/average_dl.sql
+      store_last_results: true
+      engine: presto
+    +tfidf:
+      td>: queries/tfidf.sql
+      create_table: tfidf
+    +mb25:
+      td>: queries/bm25.sql
+      create_table: bm25
+
+# 記事ごとに特徴ワードを抽出
++output:
+  _parallel: true
+
+  +collect:
+    td>: queries/collect_tfidf.sql
+    create_table: collected_tfidf
+
+  +collect2:
+    td>: queries/collect_bm25.sql
+    create_table: collected_mb25
+
+  +top_k:
+    td>: queries/top_k.sql
+    create_table: top_k_tfidf

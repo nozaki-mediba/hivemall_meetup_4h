@@ -1,0 +1,13 @@
+# Data:
+source: nozaki_test.articles # input table
+target: nozaki_test # output database
+stopwords: nozaki_test.stopwords # stopwrods table
+
+# language of documents
+# if english => english: true, japanese: false
+# if japanese => english: false, japanese: true
+english: false
+japanese: true
+
+# Top k keywords for each document
+k: 3
